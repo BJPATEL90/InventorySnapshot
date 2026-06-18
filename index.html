@@ -1,0 +1,510 @@
+<!doctype html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inventory Movement Monitor</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --line: #dfe5ee;
+      --text: #172033;
+      --muted: #667085;
+      --bad: #c2410c;
+      --good: #15803d;
+      --amber: #b7791f;
+      --blue: #1d4ed8;
+      --shadow: 0 10px 24px rgba(18, 28, 45, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+    }
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    .wrap {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 18px 18px 30px;
+    }
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr .8fr auto;
+      gap: 10px;
+      margin-bottom: 14px;
+      align-items: center;
+    }
+    input, select, textarea, button {
+      font: inherit;
+    }
+    input, select, textarea {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 6px;
+      padding: 9px 10px;
+      width: 100%;
+      color: var(--text);
+    }
+    button {
+      border: 0;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 6px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    button.secondary {
+      background: #334155;
+    }
+    button:disabled {
+      opacity: .55;
+      cursor: default;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .value {
+      font-size: 26px;
+      font-weight: 800;
+      margin-top: 6px;
+    }
+    .bad { color: var(--bad); }
+    .good { color: var(--good); }
+    .amber { color: var(--amber); }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      background: #f1f5f9;
+      color: #475467;
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .45px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 73px;
+      z-index: 3;
+    }
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #edf1f6;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .sku {
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .muted {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    .pill.neg { color: var(--bad); background: #fff7ed; border-color: #fed7aa; }
+    .pill.pos { color: var(--good); background: #f0fdf4; border-color: #bbf7d0; }
+    .pill.sys { color: var(--amber); background: #fffbeb; border-color: #fde68a; }
+    .qty {
+      font-weight: 800;
+      font-size: 15px;
+    }
+    .remarkBox {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto;
+      gap: 6px;
+    }
+    .remarkText {
+      color: #334155;
+      line-height: 1.35;
+      max-width: 340px;
+    }
+    .empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .status {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 10px;
+    }
+    @media (max-width: 900px) {
+      header { align-items: flex-start; flex-direction: column; }
+      .toolbar { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panel { overflow-x: auto; }
+      table { min-width: 1050px; }
+      th { top: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Inventory Movement Monitor</h1>
+      <div class="sub">Good vs Bad movement by SKU, batch, and facility</div>
+    </div>
+    <div>
+      <button class="secondary" onclick="runReport()" id="runBtn">Run now</button>
+      <button onclick="loadData()" id="refreshBtn">Refresh</button>
+      <span class="status" id="status">Loading...</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="cards">
+      <div class="card">
+        <div class="label">Negative Qty</div>
+        <div class="value bad" id="negativeQty">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Recovery Qty</div>
+        <div class="value good" id="positiveQty">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Pending Remarks</div>
+        <div class="value amber" id="pendingRemarks">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Events</div>
+        <div class="value" id="eventCount">0</div>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <input id="search" placeholder="Search SKU, batch, facility, movement, remark" oninput="render()">
+      <select id="facility" onchange="render()">
+        <option value="">All facilities</option>
+      </select>
+      <select id="impact" onchange="render()">
+        <option value="">All impacts</option>
+        <option value="Negative">Negative</option>
+        <option value="Positive">Positive</option>
+        <option value="Pending Remark">Pending remarks</option>
+      </select>
+      <input id="remarkBy" placeholder="Remark by" style="min-width:150px">
+    </section>
+
+    <section class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>SKU / Batch</th>
+            <th>Facility</th>
+            <th>Movement</th>
+            <th>Yesterday</th>
+            <th>Today</th>
+            <th>Qty</th>
+            <th>Reason Guess</th>
+            <th>Remark</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="9" class="empty">Loading...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    var GAS_WEB_APP_URL = 'PASTE_DEPLOYED_APPS_SCRIPT_WEB_APP_URL_HERE';
+    var state = { rows: [], facilities: [], summary: null };
+
+    function loadData() {
+      setStatus('Loading...');
+      callBackend('events', null, function(res) {
+          if (!res || !res.ok) {
+            setStatus(res && res.error ? res.error : 'Unable to load data');
+            return;
+          }
+          state.rows = res.rows || [];
+          state.facilities = res.facilities || [];
+          state.summary = res.summary || {};
+          buildFacilityFilter();
+          renderSummary();
+          render();
+          setStatus('Ready');
+        }, function(err) {
+          setStatus(err && err.message ? err.message : 'Load failed');
+        });
+    }
+
+    function runReport() {
+      var btn = document.getElementById('runBtn');
+      btn.disabled = true;
+      setStatus('Running report...');
+      callBackend('run', null, function(res) {
+          btn.disabled = false;
+          setStatus(res && res.ok ? 'Report updated' : 'Run finished');
+          loadData();
+        }, function(err) {
+          btn.disabled = false;
+          setStatus(err && err.message ? err.message : 'Run failed');
+        });
+    }
+
+    function buildFacilityFilter() {
+      var sel = document.getElementById('facility');
+      var selected = sel.value;
+      sel.innerHTML = '<option value="">All facilities</option>' +
+        state.facilities.map(function(f) {
+          return '<option value="' + esc(f) + '">' + esc(f) + '</option>';
+        }).join('');
+      sel.value = selected;
+    }
+
+    function renderSummary() {
+      var s = state.summary || {};
+      text('negativeQty', fmt(s.negativeQty || 0));
+      text('positiveQty', fmt(s.positiveQty || 0));
+      text('pendingRemarks', fmt(s.pendingRemarks || 0));
+      text('eventCount', fmt((s.negativeEvents || 0) + (s.positiveEvents || 0)));
+    }
+
+    function render() {
+      var q = document.getElementById('search').value.toLowerCase().trim();
+      var fac = document.getElementById('facility').value;
+      var impact = document.getElementById('impact').value;
+      var rows = state.rows.filter(function(r) {
+        if (fac && r.Facility !== fac) return false;
+        if (impact === 'Pending Remark' && String(r.Remark || '').trim()) return false;
+        if (impact && impact !== 'Pending Remark' && r.Impact !== impact) return false;
+        if (!q) return true;
+        return [
+          r.SKU, r.Name, r.Batch, r.Facility, r.MovementType, r.Direction,
+          r.ReasonGuess, r.Remark, r.TodayBadStatus
+        ].join(' ').toLowerCase().indexOf(q) >= 0;
+      });
+
+      var body = document.getElementById('rows');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="9" class="empty">No movement found</td></tr>';
+        return;
+      }
+
+      body.innerHTML = rows.map(function(r) {
+        var impactClass = r.Impact === 'Positive' ? 'pos' : 'neg';
+        var isSystem = String(r.ReasonGuess || '').toLowerCase().indexOf('system') >= 0;
+        return '<tr>' +
+          '<td>' + esc(r.Date) + '</td>' +
+          '<td><div class="sku">' + esc(r.SKU) + '</div><div class="muted">' + esc(r.Name || '') + '</div><div class="muted">Batch: ' + esc(r.Batch || '-') + '</div></td>' +
+          '<td>' + esc(r.Facility) + '</td>' +
+          '<td><span class="pill ' + impactClass + '">' + esc(r.MovementType) + '</span>' +
+            (isSystem ? '<div style="margin-top:5px"><span class="pill sys">System</span></div>' : '') +
+          '</td>' +
+          '<td><div class="muted">Good: ' + fmt(r.YesterdayGood) + '</div><div class="muted">Bad: ' + fmt(r.YesterdayBad) + '</div></td>' +
+          '<td><div class="muted">Good: ' + fmt(r.TodayGood) + '</div><div class="muted">Bad: ' + fmt(r.TodayBad) + '</div><div class="muted">' + esc(r.TodayBadStatus || '') + '</div></td>' +
+          '<td><div class="qty">' + fmt(r.MovementQty) + '</div></td>' +
+          '<td><div class="remarkText">' + esc(r.ReasonGuess || '') + '</div></td>' +
+          '<td>' + remarkCell(r) + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function remarkCell(r) {
+      if (String(r.Remark || '').trim()) {
+        return '<div class="remarkText">' + esc(r.Remark) + '</div>' +
+          '<div class="muted">' + esc(r.RemarkBy || '') + (r.RemarkDate ? ' - ' + esc(r.RemarkDate) : '') + '</div>';
+      }
+      return '<div class="remarkBox">' +
+        '<input id="rmk-' + safeId(r.EH_ID) + '" placeholder="Add remark">' +
+        '<button onclick="saveRemark(\'' + jsEsc(r.EH_ID) + '\')">Save</button>' +
+      '</div>';
+    }
+
+    function saveRemark(ehId) {
+      var input = document.getElementById('rmk-' + safeId(ehId));
+      var remark = input ? input.value.trim() : '';
+      var by = document.getElementById('remarkBy').value.trim();
+      if (!remark) {
+        setStatus('Remark is required');
+        return;
+      }
+      setStatus('Saving remark...');
+      saveRemarkBackend(ehId, remark, by, function(res) {
+          if (!res || !res.ok) {
+            setStatus(res && res.error ? res.error : 'Save failed');
+            return;
+          }
+          var row = state.rows.find(function(x) { return x.EH_ID === ehId; });
+          if (row) {
+            row.Remark = remark;
+            row.RemarkBy = by;
+            row.RemarkDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            row.Status = 'Remarked';
+          }
+          renderSummaryFromRows();
+          render();
+          setStatus('Remark saved');
+        }, function(err) {
+          setStatus(err && err.message ? err.message : 'Save failed');
+        });
+    }
+
+    function inAppsScriptFrame() {
+      return typeof google !== 'undefined' && google.script && google.script.run;
+    }
+
+    function callBackend(action, payload, onSuccess, onFailure) {
+      if (inAppsScriptFrame()) {
+        var runner = google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure);
+        if (action === 'events') runner.getEventsForDashboard();
+        else if (action === 'run') runner.runDailyInventoryMovementReport();
+        return;
+      }
+      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.indexOf('PASTE_') === 0) {
+        onFailure({ message: 'Paste your deployed Apps Script Web App URL into GAS_WEB_APP_URL.' });
+        return;
+      }
+      jsonp(GAS_WEB_APP_URL + '?action=' + encodeURIComponent(action), onSuccess, onFailure);
+    }
+
+    function saveRemarkBackend(ehId, remark, by, onSuccess, onFailure) {
+      if (inAppsScriptFrame()) {
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .saveMovementRemark(ehId, remark, by);
+        return;
+      }
+      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.indexOf('PASTE_') === 0) {
+        onFailure({ message: 'Paste your deployed Apps Script Web App URL into GAS_WEB_APP_URL.' });
+        return;
+      }
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'saveRemark', ehId: ehId, remark: remark, remarkBy: by })
+      }).then(function() {
+        onSuccess({ ok: true });
+      }).catch(onFailure);
+    }
+
+    function jsonp(url, onSuccess, onFailure) {
+      var cbName = 'imJsonp_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+      var script = document.createElement('script');
+      var timeout = setTimeout(function() {
+        cleanup();
+        onFailure({ message: 'Request timed out' });
+      }, 30000);
+      function cleanup() {
+        clearTimeout(timeout);
+        if (script.parentNode) script.parentNode.removeChild(script);
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+      }
+      window[cbName] = function(data) {
+        cleanup();
+        onSuccess(data);
+      };
+      script.onerror = function() {
+        cleanup();
+        onFailure({ message: 'Request failed' });
+      };
+      script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + encodeURIComponent(cbName) + '&t=' + Date.now();
+      document.body.appendChild(script);
+    }
+
+    function renderSummaryFromRows() {
+      var pending = state.rows.filter(function(r) { return !String(r.Remark || '').trim(); }).length;
+      text('pendingRemarks', fmt(pending));
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+
+    function text(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function fmt(v) {
+      var n = Number(String(v || 0).replace(/,/g, ''));
+      if (!isFinite(n)) n = 0;
+      return n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    }
+
+    function esc(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function jsEsc(v) {
+      return String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function safeId(v) {
+      return String(v == null ? '' : v).replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
