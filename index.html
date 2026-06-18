@@ -6,58 +6,110 @@
   <title>Inventory Movement Monitor</title>
   <style>
     :root {
-      --bg: #f6f8fb;
+      --bg: #eef3f7;
       --panel: #ffffff;
-      --line: #dfe5ee;
+      --line: #d7dee8;
+      --line2: #edf1f5;
       --text: #172033;
       --muted: #667085;
-      --bad: #c2410c;
-      --good: #15803d;
-      --amber: #b7791f;
-      --blue: #1d4ed8;
-      --shadow: 0 10px 24px rgba(18, 28, 45, .08);
+      --muted2: #8a94a6;
+      --bad: #b42318;
+      --bad-bg: #fff1f0;
+      --bad-line: #ffccc7;
+      --good: #16794a;
+      --good-bg: #ecfdf3;
+      --good-line: #abefc6;
+      --amber: #b54708;
+      --amber-bg: #fffaeb;
+      --amber-line: #fedf89;
+      --blue: #175cd3;
+      --blue-bg: #eff8ff;
+      --top: #123142;
+      --shadow: 0 14px 36px rgba(31, 44, 60, .10);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Inter, Arial, Helvetica, sans-serif;
       font-size: 13px;
     }
     header {
-      background: #ffffff;
-      border-bottom: 1px solid var(--line);
-      padding: 16px 22px;
+      background: var(--top);
+      color: #fff;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      padding: 14px 22px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
       position: sticky;
       top: 0;
-      z-index: 5;
+      z-index: 10;
+      box-shadow: 0 10px 28px rgba(16, 24, 40, .22);
     }
     h1 {
       margin: 0;
-      font-size: 18px;
+      font-size: 17px;
       line-height: 1.2;
+      font-weight: 800;
     }
     .sub {
-      color: var(--muted);
+      color: rgba(255,255,255,.72);
       font-size: 11px;
       margin-top: 4px;
     }
+    .headActions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
     .wrap {
-      max-width: 1380px;
+      max-width: 1440px;
       margin: 0 auto;
-      padding: 18px 18px 30px;
+      padding: 16px 18px 28px;
     }
     .toolbar {
       display: grid;
-      grid-template-columns: 1.2fr .8fr .8fr auto;
-      gap: 10px;
-      margin-bottom: 14px;
+      grid-template-columns: minmax(260px, 1.3fr) minmax(170px, .65fr) minmax(160px, .55fr) minmax(150px, .45fr);
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 12px;
+      padding: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .fieldLabel {
+      display: block;
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 800;
+      text-transform: uppercase;
+      margin: 0 0 5px;
+      letter-spacing: .45px;
+    }
+    .toolbar > div {
+      min-width: 0;
+    }
+    .statusbar {
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .statusNote {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 24px;
     }
     input, select, textarea, button {
       font: inherit;
@@ -65,23 +117,31 @@
     input, select, textarea {
       border: 1px solid var(--line);
       background: #fff;
-      border-radius: 6px;
-      padding: 9px 10px;
+      border-radius: 7px;
+      padding: 8px 10px;
       width: 100%;
       color: var(--text);
+      outline: none;
+      min-height: 36px;
+    }
+    input:focus, select:focus {
+      border-color: #84caff;
+      box-shadow: 0 0 0 3px rgba(46, 144, 250, .14);
     }
     button {
       border: 0;
       background: var(--blue);
       color: #fff;
-      border-radius: 6px;
-      padding: 9px 12px;
+      border-radius: 7px;
+      padding: 8px 12px;
       cursor: pointer;
       font-weight: 700;
       white-space: nowrap;
+      min-height: 34px;
     }
     button.secondary {
-      background: #334155;
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.22);
     }
     button:disabled {
       opacity: .55;
@@ -90,15 +150,19 @@
     .cards {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 14px;
+      gap: 10px;
+      margin-bottom: 12px;
     }
     .card {
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 14px;
+      padding: 12px 14px;
       box-shadow: var(--shadow);
+      min-height: 94px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .label {
       font-size: 10px;
@@ -108,13 +172,19 @@
       font-weight: 700;
     }
     .value {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 800;
-      margin-top: 6px;
+      margin-top: 5px;
+      line-height: 1;
     }
     .bad { color: var(--bad); }
     .good { color: var(--good); }
     .amber { color: var(--amber); }
+    .cardSub {
+      font-size: 11px;
+      color: var(--muted2);
+      margin-top: 5px;
+    }
     .panel {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -127,27 +197,31 @@
       border-collapse: collapse;
     }
     th {
-      background: #f1f5f9;
+      background: #f8fafc;
       color: #475467;
       text-align: left;
       font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: .45px;
-      padding: 10px;
+      letter-spacing: .4px;
+      padding: 9px 10px;
       border-bottom: 1px solid var(--line);
       position: sticky;
-      top: 73px;
+      top: 63px;
       z-index: 3;
     }
     td {
-      padding: 10px;
-      border-bottom: 1px solid #edf1f6;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line2);
       vertical-align: top;
+    }
+    tbody tr:hover {
+      background: #fbfdff;
     }
     tr:last-child td { border-bottom: 0; }
     .sku {
       font-weight: 700;
       font-size: 12px;
+      color: var(--text);
     }
     .muted {
       color: var(--muted);
@@ -163,17 +237,32 @@
       border: 1px solid var(--line);
       white-space: nowrap;
     }
-    .pill.neg { color: var(--bad); background: #fff7ed; border-color: #fed7aa; }
-    .pill.pos { color: var(--good); background: #f0fdf4; border-color: #bbf7d0; }
-    .pill.sys { color: var(--amber); background: #fffbeb; border-color: #fde68a; }
+    .pill.neg { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
+    .pill.pos { color: var(--good); background: var(--good-bg); border-color: var(--good-line); }
+    .pill.sys { color: var(--amber); background: var(--amber-bg); border-color: var(--amber-line); }
+    .pill.neutral { color: #344054; background: #f2f4f7; border-color: #e4e7ec; }
     .qty {
       font-weight: 800;
-      font-size: 15px;
+      font-size: 16px;
+      line-height: 1.1;
+    }
+    .qty.neg { color: var(--bad); }
+    .qty.pos { color: var(--good); }
+    .stack {
+      display: grid;
+      gap: 3px;
+    }
+    .movementTitle {
+      font-weight: 800;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #344054;
     }
     .remarkBox {
       display: grid;
-      grid-template-columns: minmax(180px, 1fr) auto;
+      grid-template-columns: minmax(210px, 1fr) auto;
       gap: 6px;
+      align-items: center;
     }
     .remarkText {
       color: #334155;
@@ -187,26 +276,47 @@
     }
     .status {
       font-size: 11px;
-      color: var(--muted);
-      margin-left: 10px;
+      color: rgba(255,255,255,.78);
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.16);
+    }
+    .numCell {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .reason {
+      max-width: 260px;
+      color: #475467;
+      line-height: 1.35;
+    }
+    .dateCell {
+      white-space: nowrap;
+      font-weight: 700;
+      color: #344054;
     }
     @media (max-width: 900px) {
       header { align-items: flex-start; flex-direction: column; }
       .toolbar { grid-template-columns: 1fr; }
       .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .panel { overflow-x: auto; }
-      table { min-width: 1050px; }
+      table { min-width: 1120px; }
       th { top: 0; }
+      .headActions { justify-content: flex-start; }
     }
   </style>
 </head>
 <body>
   <header>
     <div>
-      <h1>Inventory Movement Monitor</h1>
+      <h1>Inventory Snapshot</h1>
       <div class="sub">Good vs Bad movement by SKU, batch, and facility</div>
     </div>
-    <div>
+    <div class="headActions">
       <button class="secondary" onclick="runReport()" id="runBtn">Run now</button>
       <button onclick="loadData()" id="refreshBtn">Refresh</button>
       <span class="status" id="status">Loading...</span>
@@ -218,34 +328,55 @@
       <div class="card">
         <div class="label">Negative Qty</div>
         <div class="value bad" id="negativeQty">0</div>
+        <div class="cardSub">Good to Bad and direct Bad</div>
       </div>
       <div class="card">
         <div class="label">Recovery Qty</div>
         <div class="value good" id="positiveQty">0</div>
+        <div class="cardSub">Bad to Good recovery</div>
       </div>
       <div class="card">
         <div class="label">Pending Remarks</div>
         <div class="value amber" id="pendingRemarks">0</div>
+        <div class="cardSub">Rows awaiting comments</div>
       </div>
       <div class="card">
         <div class="label">Events</div>
         <div class="value" id="eventCount">0</div>
+        <div class="cardSub">Current month</div>
       </div>
     </section>
 
     <section class="toolbar">
-      <input id="search" placeholder="Search SKU, batch, facility, movement, remark" oninput="render()">
-      <select id="facility" onchange="render()">
-        <option value="">All facilities</option>
-      </select>
-      <select id="impact" onchange="render()">
-        <option value="">All impacts</option>
-        <option value="Negative">Negative</option>
-        <option value="Positive">Positive</option>
-        <option value="Pending Remark">Pending remarks</option>
-      </select>
-      <input id="remarkBy" placeholder="Remark by" style="min-width:150px">
+      <div>
+        <label class="fieldLabel" for="search">Search</label>
+        <input id="search" placeholder="SKU, batch, facility, movement, remark" oninput="render()">
+      </div>
+      <div>
+        <label class="fieldLabel" for="facility">Facility</label>
+        <select id="facility" onchange="render()">
+          <option value="">All facilities</option>
+        </select>
+      </div>
+      <div>
+        <label class="fieldLabel" for="impact">View</label>
+        <select id="impact" onchange="render()">
+          <option value="">All impacts</option>
+          <option value="Negative">Negative</option>
+          <option value="Positive">Positive</option>
+          <option value="Pending Remark">Pending remarks</option>
+        </select>
+      </div>
+      <div>
+        <label class="fieldLabel" for="remarkBy">Remark by</label>
+        <input id="remarkBy" placeholder="Your name">
+      </div>
     </section>
+
+    <div class="statusbar">
+      <span class="statusNote" id="viewNote">Showing current month movements</span>
+      <span id="rowCount">0 rows</span>
+    </div>
 
     <section class="panel">
       <table>
@@ -272,6 +403,10 @@
   <script>
     var GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzIWiaivJ8ibZROAU_uZ0N7-sP0xsrLsroWZwQfmodlwlz3coLOrkXa4O_ZD4xCOm2B/exec';
     var state = { rows: [], facilities: [], summary: null };
+
+    window.onerror = function(message, source, line, column) {
+      setStatus('Dashboard error: ' + message + ' at line ' + line);
+    };
 
     function loadData() {
       setStatus('Loading...');
@@ -340,6 +475,7 @@
       });
 
       var body = document.getElementById('rows');
+      text('rowCount', rows.length + (rows.length === 1 ? ' row' : ' rows'));
       if (!rows.length) {
         body.innerHTML = '<tr><td colspan="9" class="empty">No movement found</td></tr>';
         return;
@@ -348,17 +484,20 @@
       body.innerHTML = rows.map(function(r) {
         var impactClass = r.Impact === 'Positive' ? 'pos' : 'neg';
         var isSystem = String(r.ReasonGuess || '').toLowerCase().indexOf('system') >= 0;
+        var dirLabel = r.Impact === 'Positive' ? 'Recovery' : 'Impact';
+        var qtyClass = r.Impact === 'Positive' ? 'pos' : 'neg';
         return '<tr>' +
-          '<td>' + esc(r.Date) + '</td>' +
-          '<td><div class="sku">' + esc(r.SKU) + '</div><div class="muted">' + esc(r.Name || '') + '</div><div class="muted">Batch: ' + esc(r.Batch || '-') + '</div></td>' +
-          '<td>' + esc(r.Facility) + '</td>' +
-          '<td><span class="pill ' + impactClass + '">' + esc(r.MovementType) + '</span>' +
-            (isSystem ? '<div style="margin-top:5px"><span class="pill sys">System</span></div>' : '') +
+          '<td class="dateCell">' + esc(r.Date) + '</td>' +
+          '<td><div class="stack"><div class="sku">' + esc(r.SKU) + '</div><div class="muted">' + esc(r.Name || '') + '</div><div><span class="pill neutral">Batch ' + esc(r.Batch || '-') + '</span></div></div></td>' +
+          '<td><div class="sku">' + esc(r.Facility) + '</div><div class="muted">' + esc(r.TodayBadStatus || '') + '</div></td>' +
+          '<td><span class="pill ' + impactClass + '">' + esc(dirLabel) + '</span>' +
+            (isSystem ? ' <span class="pill sys">System</span>' : '') +
+            '<div class="movementTitle">' + esc(r.MovementType) + '</div>' +
           '</td>' +
-          '<td><div class="muted">Good: ' + fmt(r.YesterdayGood) + '</div><div class="muted">Bad: ' + fmt(r.YesterdayBad) + '</div></td>' +
-          '<td><div class="muted">Good: ' + fmt(r.TodayGood) + '</div><div class="muted">Bad: ' + fmt(r.TodayBad) + '</div><div class="muted">' + esc(r.TodayBadStatus || '') + '</div></td>' +
-          '<td><div class="qty">' + fmt(r.MovementQty) + '</div></td>' +
-          '<td><div class="remarkText">' + esc(r.ReasonGuess || '') + '</div></td>' +
+          '<td class="numCell"><div class="muted">Good</div><div class="sku">' + fmt(r.YesterdayGood) + '</div><div class="muted">Bad ' + fmt(r.YesterdayBad) + '</div></td>' +
+          '<td class="numCell"><div class="muted">Good</div><div class="sku">' + fmt(r.TodayGood) + '</div><div class="muted">Bad ' + fmt(r.TodayBad) + '</div></td>' +
+          '<td class="numCell"><div class="qty ' + qtyClass + '">' + fmt(r.MovementQty) + '</div></td>' +
+          '<td><div class="reason">' + esc(r.ReasonGuess || '') + '</div></td>' +
           '<td>' + remarkCell(r) + '</td>' +
         '</tr>';
       }).join('');
@@ -434,13 +573,15 @@
         onFailure({ message: 'Paste your deployed Apps Script Web App URL into GAS_WEB_APP_URL.' });
         return;
       }
+      var localRow = state.rows.find(function(x) { return x.EH_ID === ehId; });
       fetch(GAS_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'saveRemark', ehId: ehId, remark: remark, remarkBy: by })
+        body: JSON.stringify({ action: 'saveRemark', ehId: ehId, remark remark, remarkBy: by })
       }).then(function() {
-        onSuccess({ ok: true });
+        if (localRow) onSuccess({ ok: true });
+        else loadData();
       }).catch(onFailure);
     }
 
@@ -462,7 +603,7 @@
       };
       script.onerror = function() {
         cleanup();
-        onFailure({ message: 'Request failed' });
+        onFailure({ message: 'Request failed. Open backend test: ' + GAS_WEB_APP_URL + '?action=events' });
       };
       script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + encodeURIComponent(cbName) + '&t=' + Date.now();
       document.body.appendChild(script);
