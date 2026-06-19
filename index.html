@@ -143,6 +143,10 @@
       background: rgba(255,255,255,.14);
       border: 1px solid rgba(255,255,255,.22);
     }
+    button.danger {
+      background: #b42318;
+      border: 1px solid rgba(255,255,255,.18);
+    }
     button:disabled {
       opacity: .55;
       cursor: default;
@@ -318,6 +322,7 @@
     </div>
     <div class="headActions">
       <button class="secondary" onclick="runReport()" id="runBtn">Run now</button>
+      <button class="danger" onclick="flushAndReimport()" id="flushBtn">Flush & reimport</button>
       <button onclick="loadData()" id="refreshBtn">Refresh</button>
       <span class="status" id="status">Loading...</span>
     </div>
@@ -433,12 +438,44 @@
       setStatus('Running report...');
       callBackend('run', null, function(res) {
           btn.disabled = false;
-          setStatus(res && res.ok ? 'Report updated' : 'Run finished');
+          showRunResult(res, 'Report updated');
           loadData();
         }, function(err) {
           btn.disabled = false;
           setStatus(err && err.message ? err.message : 'Run failed');
         });
+    }
+
+    function flushAndReimport() {
+      if (!confirm('This will clear old generated movement rows and import the latest all-facility yesterday/today report again. Continue?')) {
+        return;
+      }
+      var btn = document.getElementById('flushBtn');
+      btn.disabled = true;
+      setStatus('Flushing and reimporting...');
+      callBackend('flushRun', null, function(res) {
+          btn.disabled = false;
+          showRunResult(res, 'Reimport completed');
+          loadData();
+        }, function(err) {
+          btn.disabled = false;
+          setStatus(err && err.message ? err.message : 'Reimport failed');
+        });
+    }
+
+    function showRunResult(res, defaultMessage) {
+      if (!res || !res.ok) {
+        setStatus(res && res.error ? res.error : 'Run failed');
+        return;
+      }
+      var msg = defaultMessage + ': ' + fmt(res.events || 0) + ' events';
+      if (res.rows) {
+        msg += ', rows Y/T ' + fmt(res.rows.yesterday || 0) + '/' + fmt(res.rows.today || 0);
+      }
+      if (res.warnings && res.warnings.length) {
+        msg += ' - Warning: ' + res.warnings[0];
+      }
+      setStatus(msg);
     }
 
     function buildFacilityFilter() {
@@ -552,6 +589,7 @@
         var runner = google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onFailure);
         if (action === 'events') runner.getEventsForDashboard();
         else if (action === 'run') runner.runDailyInventoryMovementReport();
+        else if (action === 'flushRun') runner.flushAndReimportInventoryMovementReport();
         return;
       }
       if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.indexOf('PASTE_') === 0) {
@@ -578,7 +616,7 @@
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'saveRemark', ehId: ehId, remark remark, remarkBy: by })
+        body: JSON.stringify({ action: 'saveRemark', ehId: ehId, remark: remark, remarkBy: by })
       }).then(function() {
         if (localRow) onSuccess({ ok: true });
         else loadData();

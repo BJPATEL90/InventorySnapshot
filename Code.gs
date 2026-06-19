@@ -4,9 +4,9 @@
 
 const IM_CONFIG = {
   SHEET_ID: '1dT7h1m8y3b97-58Bd6RG78H5WIuw4aGtSBhJ1kWGm7o',
-  SUBJECT_FILTER: 'Export Job Complete - Shelfwise Inventory',
+  SUBJECT_FILTER: 'Export Job Complete - All facility Shelfwise Inventory',
   SEARCH_DAYS: 7,
-  TARGET_EXPORT_HOUR: 7,
+  TARGET_EXPORT_HOUR: 9,
   FACILITIES: [
     'Aramex',
     'SL Ambient',
@@ -63,23 +63,56 @@ const IM_SNAPSHOT_HEADERS = [
   'TotalQty'
 ];
 
-function runDailyInventoryMovementReport() {
+function runDailyInventoryMovementReport(options) {
+  options = options || {};
   const exports = getLastTwoShelfwiseExports_();
   if (!exports) {
-    throw new Error('Could not find two recent Shelfwise Inventory exports in Gmail.');
+    throw new Error('Could not find two recent all-facility Shelfwise Inventory exports in Gmail.');
   }
 
   const yesterdayRows = fetchCsvAsObjects_(exports.yesterday.url);
   const todayRows = fetchCsvAsObjects_(exports.today.url);
   const result = analyzeInventoryMovement_(yesterdayRows, todayRows, exports.yesterday.date, exports.today.date);
+  const coverage = buildImportCoverage_(yesterdayRows, todayRows);
 
+  if (options.flush === true) {
+    clearReportData_();
+  }
   saveEvents_(result.events, result.todayDateText);
   saveTodaySnapshot_(result.todaySnapshot, result.todayDateText);
   return {
     ok: true,
+    flushed: options.flush === true,
     today: result.todayDateText,
     yesterday: result.yesterdayDateText,
-    events: result.events.length
+    events: result.events.length,
+    subject: IM_CONFIG.SUBJECT_FILTER,
+    source: {
+      today: exports.today.emailDateText,
+      yesterday: exports.yesterday.emailDateText
+    },
+    rows: {
+      today: todayRows.length,
+      yesterday: yesterdayRows.length
+    },
+    facilities: {
+      today: coverage.todayFacilities,
+      yesterday: coverage.yesterdayFacilities
+    },
+    warnings: coverage.warnings
+  };
+}
+
+function flushAndReimportInventoryMovementReport() {
+  return runDailyInventoryMovementReport({ flush: true });
+}
+
+function flushInventoryMovementReportOnly() {
+  clearReportData_();
+  return {
+    ok: true,
+    flushed: true,
+    message: 'Old movement events and snapshot have been cleared.'
   };
 }
 
@@ -91,6 +124,12 @@ function doGet(e) {
   if (action === 'run') {
     return jsonResponse_(e, runDailyInventoryMovementReport());
   }
+  if (action === 'flushRun' || action === 'reimport') {
+    return jsonResponse_(e, flushAndReimportInventoryMovementReport());
+  }
+  if (action === 'flush') {
+    return jsonResponse_(e, flushInventoryMovementReportOnly());
+  }
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('Inventory Movement Monitor')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -101,6 +140,12 @@ function doPost(e) {
     const payload = JSON.parse(e.postData.contents || '{}');
     if (payload.action === 'saveRemark') {
       return jsonOutput_(saveMovementRemark(payload.ehId, payload.remark, payload.remarkBy));
+    }
+    if (payload.action === 'flushRun' || payload.action === 'reimport') {
+      return jsonOutput_(flushAndReimportInventoryMovementReport());
+    }
+    if (payload.action === 'flush') {
+      return jsonOutput_(flushInventoryMovementReportOnly());
     }
     return jsonOutput_({ ok: false, error: 'Unknown action' });
   } catch (err) {
@@ -144,6 +189,7 @@ function getEventsForDashboard() {
 
   return {
     ok: true,
+    importSubject: IM_CONFIG.SUBJECT_FILTER,
     facilities: IM_CONFIG.FACILITIES,
     rows: currentMonthRows.reverse(),
     summary: summary
@@ -419,21 +465,76 @@ function saveTodaySnapshot_(records, dateText) {
   sh.setFrozenRows(1);
 }
 
+function clearReportData_() {
+  resetSheet_(IM_CONFIG.EVENTS_SHEET, IM_EVENT_HEADERS);
+  resetSheet_(IM_CONFIG.SNAPSHOT_SHEET, IM_SNAPSHOT_HEADERS);
+}
+
+function resetSheet_(sheetName, headers) {
+  const sh = ensureSheet_(sheetName, headers);
+  sh.clearContents();
+  sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+}
+
+function buildImportCoverage_(yesterdayRows, todayRows) {
+  const yesterdayFacilities = listFacilitiesInRows_(yesterdayRows);
+  const todayFacilities = listFacilitiesInRows_(todayRows);
+  const warnings = [];
+  const missingYesterday = missingFacilities_(yesterdayFacilities);
+  const missingToday = missingFacilities_(todayFacilities);
+
+  if (yesterdayFacilities.length <= 1) {
+    warnings.push('Yesterday import has only ' + yesterdayFacilities.length + ' facility. Please verify the all-facility export email.');
+  }
+  if (todayFacilities.length <= 1) {
+    warnings.push('Today import has only ' + todayFacilities.length + ' facility. Please verify the all-facility export email.');
+  }
+  if (missingYesterday.length) {
+    warnings.push('Yesterday missing facilities: ' + missingYesterday.join(', '));
+  }
+  if (missingToday.length) {
+    warnings.push('Today missing facilities: ' + missingToday.join(', '));
+  }
+
+  return {
+    yesterdayFacilities: yesterdayFacilities,
+    todayFacilities: todayFacilities,
+    warnings: warnings
+  };
+}
+
+function listFacilitiesInRows_(rows) {
+  const seen = {};
+  rows.forEach(function(row) {
+    const facility = canonicalFacility_(getField_(row, ['Facility']));
+    if (facility) seen[facility] = true;
+  });
+  return Object.keys(seen).sort();
+}
+
+function missingFacilities_(foundFacilities) {
+  const found = {};
+  foundFacilities.forEach(function(f) { found[f] = true; });
+  return IM_CONFIG.FACILITIES.filter(function(f) { return !found[f]; });
+}
+
 function getLastTwoShelfwiseExports_() {
-  const threads = GmailApp.search(IM_CONFIG.SUBJECT_FILTER + ' newer_than:' + IM_CONFIG.SEARCH_DAYS + 'd', 0, 40);
+  const threads = GmailApp.search('subject:"' + IM_CONFIG.SUBJECT_FILTER + '" newer_than:' + IM_CONFIG.SEARCH_DAYS + 'd', 0, 60);
   const found = [];
 
   threads.forEach(function(thread) {
     thread.getMessages().forEach(function(msg) {
+      if (String(msg.getSubject() || '').trim() !== IM_CONFIG.SUBJECT_FILTER) return;
       const body = msg.getPlainBody() + '\n' + msg.getBody();
       const url = extractCsvUrl_(body);
       if (!url) return;
       const d = msg.getDate();
       const hour = parseInt(Utilities.formatDate(d, IM_CONFIG.TIMEZONE, 'HH'), 10);
-      if (hour >= 8) return;
       found.push({
         url: url,
         date: d,
+        emailDateText: Utilities.formatDate(d, IM_CONFIG.TIMEZONE, 'dd MMM yyyy HH:mm'),
         dayKey: Utilities.formatDate(d, IM_CONFIG.TIMEZONE, 'yyyy-MM-dd'),
         hour: hour
       });
