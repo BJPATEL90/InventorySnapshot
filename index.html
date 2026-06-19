@@ -6,7 +6,7 @@
   <title>Inventory Movement Monitor</title>
   <style>
     :root {
-      --bg: #eef3f7;
+      --bg: #f3f6fa;
       --panel: #ffffff;
       --line: #d7dee8;
       --line2: #edf1f5;
@@ -24,8 +24,10 @@
       --amber-line: #fedf89;
       --blue: #175cd3;
       --blue-bg: #eff8ff;
-      --top: #123142;
-      --shadow: 0 14px 36px rgba(31, 44, 60, .10);
+      --top: #122b3a;
+      --top2: #183b4f;
+      --shadow: 0 10px 26px rgba(31, 44, 60, .08);
+      --shadow2: 0 18px 44px rgba(16, 24, 40, .18);
     }
     * { box-sizing: border-box; }
     body {
@@ -36,18 +38,21 @@
       font-size: 13px;
     }
     header {
-      background: var(--top);
+      background: linear-gradient(90deg, var(--top), var(--top2));
       color: #fff;
       border-bottom: 1px solid rgba(255,255,255,.12);
-      padding: 14px 22px;
+      padding: 13px 22px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 18px;
       position: sticky;
       top: 0;
       z-index: 10;
       box-shadow: 0 10px 28px rgba(16, 24, 40, .22);
+    }
+    .brandBlock {
+      min-width: 240px;
     }
     h1 {
       margin: 0;
@@ -63,14 +68,15 @@
     .headActions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
       flex-wrap: wrap;
       justify-content: flex-end;
+      min-width: 0;
     }
     .wrap {
-      max-width: 1440px;
+      max-width: none;
       margin: 0 auto;
-      padding: 16px 18px 28px;
+      padding: 16px 38px 28px;
     }
     .toolbar {
       display: grid;
@@ -129,7 +135,7 @@
       box-shadow: 0 0 0 3px rgba(46, 144, 250, .14);
     }
     button {
-      border: 0;
+      border: 1px solid transparent;
       background: var(--blue);
       color: #fff;
       border-radius: 7px;
@@ -138,14 +144,35 @@
       font-weight: 700;
       white-space: nowrap;
       min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
     button.secondary {
       background: rgba(255,255,255,.14);
       border: 1px solid rgba(255,255,255,.22);
     }
+    button.primary {
+      background: #1570ef;
+      border-color: #1570ef;
+    }
     button.danger {
+      background: rgba(180, 35, 24, .16);
+      color: #ffdad6;
+      border: 1px solid rgba(255, 218, 214, .36);
+    }
+    button.danger:hover {
+      background: rgba(180, 35, 24, .24);
+    }
+    button.modalDanger {
       background: #b42318;
-      border: 1px solid rgba(255,255,255,.18);
+      border-color: #b42318;
+    }
+    button.light {
+      background: #fff;
+      color: #344054;
+      border-color: var(--line);
     }
     button:disabled {
       opacity: .55;
@@ -193,32 +220,48 @@
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      overflow: hidden;
+      overflow-x: auto;
       box-shadow: var(--shadow);
+    }
+    .tableShell {
+      overflow-x: auto;
     }
     table {
       width: 100%;
+      min-width: 1575px;
       border-collapse: collapse;
+      table-layout: fixed;
     }
+    .col-date { width: 120px; }
+    .col-sku { width: 280px; }
+    .col-facility { width: 135px; }
+    .col-movement { width: 190px; }
+    .col-yesterday { width: 100px; }
+    .col-today { width: 100px; }
+    .col-qty { width: 70px; }
+    .col-reason { width: 250px; }
+    .col-remark { width: 330px; }
     th {
-      background: #f8fafc;
+      background: #f6f8fb;
       color: #475467;
       text-align: left;
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: .4px;
-      padding: 9px 10px;
+      padding: 10px 10px;
       border-bottom: 1px solid var(--line);
-      position: sticky;
-      top: 63px;
-      z-index: 3;
+      vertical-align: bottom;
     }
     td {
-      padding: 9px 10px;
+      padding: 11px 10px;
       border-bottom: 1px solid var(--line2);
       vertical-align: top;
+      background: #fff;
     }
     tbody tr:hover {
+      background: #fbfdff;
+    }
+    tbody tr:hover td {
       background: #fbfdff;
     }
     tr:last-child td { border-bottom: 0; }
@@ -288,10 +331,37 @@
       border-radius: 999px;
       background: rgba(255,255,255,.10);
       border: 1px solid rgba(255,255,255,.16);
+      max-width: min(520px, 38vw);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .numCell {
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
+    }
+    .snapshotStack {
+      display: grid;
+      gap: 4px;
+      min-width: 78px;
+    }
+    .snapshotLine {
+      display: grid;
+      grid-template-columns: 34px minmax(34px, 1fr);
+      align-items: baseline;
+      column-gap: 8px;
+    }
+    .snapshotLabel {
+      color: var(--muted);
+      font-size: 11px;
+      text-align: left;
+    }
+    .snapshotValue {
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.15;
+      text-align: right;
     }
     .reason {
       max-width: 260px;
@@ -303,27 +373,99 @@
       font-weight: 700;
       color: #344054;
     }
+    .modalBackdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, .44);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 30;
+    }
+    .modalBackdrop.show {
+      display: flex;
+    }
+    .modal {
+      width: min(520px, 100%);
+      background: #fff;
+      color: var(--text);
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow2);
+      overflow: hidden;
+    }
+    .modalHead {
+      padding: 16px 18px 10px;
+      border-bottom: 1px solid var(--line2);
+    }
+    .modalTitle {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 800;
+      color: #101828;
+    }
+    .modalBody {
+      padding: 14px 18px 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .modalText {
+      color: #475467;
+      line-height: 1.45;
+      margin: 0;
+    }
+    .safeList {
+      display: grid;
+      gap: 6px;
+      padding: 10px 12px;
+      border: 1px solid #fecdca;
+      background: #fff5f4;
+      border-radius: 8px;
+      color: #7a271a;
+      line-height: 1.35;
+    }
+    .confirmWord {
+      font-weight: 800;
+      color: #101828;
+    }
+    .modalActions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 18px 16px;
+      border-top: 1px solid var(--line2);
+      background: #fbfcfe;
+    }
     @media (max-width: 900px) {
-      header { align-items: flex-start; flex-direction: column; }
+      header { align-items: flex-start; flex-direction: column; position: static; }
+      .brandBlock { min-width: 0; }
       .toolbar { grid-template-columns: 1fr; }
       .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .panel { overflow-x: auto; }
-      table { min-width: 1120px; }
-      th { top: 0; }
+      table { min-width: 1575px; }
       .headActions { justify-content: flex-start; }
+      .status { width: 100%; max-width: none; justify-content: flex-start; border-radius: 7px; white-space: normal; }
+      .modalActions { flex-direction: column-reverse; }
+      .modalActions button { width: 100%; }
+    }
+    @media (max-width: 560px) {
+      .wrap { padding: 12px; }
+      .cards { grid-template-columns: 1fr; }
+      .headActions button { flex: 1 1 auto; }
     }
   </style>
 </head>
 <body>
   <header>
-    <div>
+    <div class="brandBlock">
       <h1>Inventory Snapshot</h1>
       <div class="sub">Good vs Bad movement by SKU, batch, and facility</div>
     </div>
     <div class="headActions">
       <button class="secondary" onclick="runReport()" id="runBtn">Run now</button>
       <button class="danger" onclick="flushAndReimport()" id="flushBtn">Flush & reimport</button>
-      <button onclick="loadData()" id="refreshBtn">Refresh</button>
+      <button class="primary" onclick="loadData()" id="refreshBtn">Refresh</button>
       <span class="status" id="status">Loading...</span>
     </div>
   </header>
@@ -343,7 +485,7 @@
       <div class="card">
         <div class="label">Pending Remarks</div>
         <div class="value amber" id="pendingRemarks">0</div>
-        <div class="cardSub">Rows awaiting comments</div>
+        <div class="cardSub">Negative rows awaiting comments</div>
       </div>
       <div class="card">
         <div class="label">Events</div>
@@ -384,26 +526,62 @@
     </div>
 
     <section class="panel">
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>SKU / Batch</th>
-            <th>Facility</th>
-            <th>Movement</th>
-            <th>Yesterday</th>
-            <th>Today</th>
-            <th>Qty</th>
-            <th>Reason Guess</th>
-            <th>Remark</th>
-          </tr>
-        </thead>
-        <tbody id="rows">
-          <tr><td colspan="9" class="empty">Loading...</td></tr>
-        </tbody>
-      </table>
+      <div class="tableShell">
+        <table>
+          <colgroup>
+            <col class="col-date">
+            <col class="col-sku">
+            <col class="col-facility">
+            <col class="col-movement">
+            <col class="col-yesterday">
+            <col class="col-today">
+            <col class="col-qty">
+            <col class="col-reason">
+            <col class="col-remark">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>SKU / Batch</th>
+              <th>Facility</th>
+              <th>Movement</th>
+              <th>Yesterday</th>
+              <th>Today</th>
+              <th>Qty</th>
+              <th>Reason Guess</th>
+              <th>Remark</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="9" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </main>
+
+  <div class="modalBackdrop" id="flushModal" role="dialog" aria-modal="true" aria-labelledby="flushTitle">
+    <div class="modal">
+      <div class="modalHead">
+        <h2 class="modalTitle" id="flushTitle">Confirm flush & reimport</h2>
+      </div>
+      <div class="modalBody">
+        <p class="modalText">This action clears generated inventory report data and imports the report again.</p>
+        <div class="safeList">
+          <div>Clears only <strong>IM_Events</strong> and <strong>IM_TodaySnapshot</strong>.</div>
+          <div>Remarks are archived first in <strong>IM_RemarkArchive</strong> and matching remarks are re-applied.</div>
+        </div>
+        <label>
+          <span class="fieldLabel">Type <span class="confirmWord">REIMPORT</span> to continue</span>
+          <input id="flushConfirmText" autocomplete="off" oninput="updateFlushConfirmState()">
+        </label>
+      </div>
+      <div class="modalActions">
+        <button class="light" onclick="closeFlushModal()">Cancel</button>
+        <button class="modalDanger" id="confirmFlushBtn" onclick="flushAndReimportConfirmed()" disabled>Flush & reimport</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     var GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzIWiaivJ8ibZROAU_uZ0N7-sP0xsrLsroWZwQfmodlwlz3coLOrkXa4O_ZD4xCOm2B/exec';
@@ -447,9 +625,32 @@
     }
 
     function flushAndReimport() {
-      if (!confirm('This will clear old generated movement rows and import the latest all-facility yesterday/today report again. Continue?')) {
-        return;
-      }
+      openFlushModal();
+    }
+
+    function openFlushModal() {
+      var modal = document.getElementById('flushModal');
+      var input = document.getElementById('flushConfirmText');
+      modal.classList.add('show');
+      input.value = '';
+      updateFlushConfirmState();
+      setTimeout(function() { input.focus(); }, 20);
+    }
+
+    function closeFlushModal() {
+      document.getElementById('flushModal').classList.remove('show');
+      setStatus('Reimport cancelled');
+    }
+
+    function updateFlushConfirmState() {
+      var typed = document.getElementById('flushConfirmText').value;
+      document.getElementById('confirmFlushBtn').disabled =
+        String(typed || '').trim().toUpperCase() !== 'REIMPORT';
+    }
+
+    function flushAndReimportConfirmed() {
+      if (document.getElementById('confirmFlushBtn').disabled) return;
+      document.getElementById('flushModal').classList.remove('show');
       var btn = document.getElementById('flushBtn');
       btn.disabled = true;
       setStatus('Flushing and reimporting...');
@@ -463,6 +664,12 @@
         });
     }
 
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && document.getElementById('flushModal').classList.contains('show')) {
+        closeFlushModal();
+      }
+    });
+
     function showRunResult(res, defaultMessage) {
       if (!res || !res.ok) {
         setStatus(res && res.error ? res.error : 'Run failed');
@@ -471,6 +678,9 @@
       var msg = defaultMessage + ': ' + fmt(res.events || 0) + ' events';
       if (res.rows) {
         msg += ', rows Y/T ' + fmt(res.rows.yesterday || 0) + '/' + fmt(res.rows.today || 0);
+      }
+      if (res.archivedRemarks) {
+        msg += ', remarks archived ' + fmt(res.archivedRemarks);
       }
       if (res.warnings && res.warnings.length) {
         msg += ' - Warning: ' + res.warnings[0];
@@ -502,7 +712,7 @@
       var impact = document.getElementById('impact').value;
       var rows = state.rows.filter(function(r) {
         if (fac && r.Facility !== fac) return false;
-        if (impact === 'Pending Remark' && String(r.Remark || '').trim()) return false;
+        if (impact === 'Pending Remark' && (r.Impact !== 'Negative' || String(r.Remark || '').trim())) return false;
         if (impact && impact !== 'Pending Remark' && r.Impact !== impact) return false;
         if (!q) return true;
         return [
@@ -531,8 +741,8 @@
             (isSystem ? ' <span class="pill sys">System</span>' : '') +
             '<div class="movementTitle">' + esc(r.MovementType) + '</div>' +
           '</td>' +
-          '<td class="numCell"><div class="muted">Good</div><div class="sku">' + fmt(r.YesterdayGood) + '</div><div class="muted">Bad ' + fmt(r.YesterdayBad) + '</div></td>' +
-          '<td class="numCell"><div class="muted">Good</div><div class="sku">' + fmt(r.TodayGood) + '</div><div class="muted">Bad ' + fmt(r.TodayBad) + '</div></td>' +
+          '<td class="numCell">' + snapshotCell(r.YesterdayGood, r.YesterdayBad) + '</td>' +
+          '<td class="numCell">' + snapshotCell(r.TodayGood, r.TodayBad) + '</td>' +
           '<td class="numCell"><div class="qty ' + qtyClass + '">' + fmt(r.MovementQty) + '</div></td>' +
           '<td><div class="reason">' + esc(r.ReasonGuess || '') + '</div></td>' +
           '<td>' + remarkCell(r) + '</td>' +
@@ -548,6 +758,13 @@
       return '<div class="remarkBox">' +
         '<input id="rmk-' + safeId(r.EH_ID) + '" placeholder="Add remark">' +
         '<button onclick="saveRemark(\'' + jsEsc(r.EH_ID) + '\')">Save</button>' +
+      '</div>';
+    }
+
+    function snapshotCell(goodQty, badQty) {
+      return '<div class="snapshotStack">' +
+        '<div class="snapshotLine"><span class="snapshotLabel">Good</span><span class="snapshotValue">' + fmt(goodQty) + '</span></div>' +
+        '<div class="snapshotLine"><span class="snapshotLabel">Bad</span><span class="snapshotValue">' + fmt(badQty) + '</span></div>' +
       '</div>';
     }
 
@@ -641,19 +858,23 @@
       };
       script.onerror = function() {
         cleanup();
-        onFailure({ message: 'Request failed. Open backend test: ' + GAS_WEB_APP_URL + '?action=events' });
+        onFailure({ message: 'Unable to reach backend. Refresh or check web app deployment.' });
       };
       script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + encodeURIComponent(cbName) + '&t=' + Date.now();
       document.body.appendChild(script);
     }
 
     function renderSummaryFromRows() {
-      var pending = state.rows.filter(function(r) { return !String(r.Remark || '').trim(); }).length;
+      var pending = state.rows.filter(function(r) {
+        return r.Impact === 'Negative' && !String(r.Remark || '').trim();
+      }).length;
       text('pendingRemarks', fmt(pending));
     }
 
     function setStatus(msg) {
-      document.getElementById('status').textContent = msg;
+      var el = document.getElementById('status');
+      el.textContent = msg;
+      el.title = msg;
     }
 
     function text(id, value) {

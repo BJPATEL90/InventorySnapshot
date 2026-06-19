@@ -24,7 +24,8 @@ const IM_CONFIG = {
   ],
   TIMEZONE: 'Asia/Kolkata',
   EVENTS_SHEET: 'IM_Events',
-  SNAPSHOT_SHEET: 'IM_TodaySnapshot'
+  SNAPSHOT_SHEET: 'IM_TodaySnapshot',
+  REMARK_ARCHIVE_SHEET: 'IM_RemarkArchive'
 };
 
 const IM_EVENT_HEADERS = [
@@ -63,6 +64,19 @@ const IM_SNAPSHOT_HEADERS = [
   'TotalQty'
 ];
 
+const IM_REMARK_ARCHIVE_HEADERS = [
+  'ArchiveDate',
+  'EH_ID',
+  'Date',
+  'SKU',
+  'Batch',
+  'Facility',
+  'Remark',
+  'RemarkBy',
+  'RemarkDate',
+  'Status'
+];
+
 function runDailyInventoryMovementReport(options) {
   options = options || {};
   const exports = getLastTwoShelfwiseExports_();
@@ -74,15 +88,18 @@ function runDailyInventoryMovementReport(options) {
   const todayRows = fetchCsvAsObjects_(exports.today.url);
   const result = analyzeInventoryMovement_(yesterdayRows, todayRows, exports.yesterday.date, exports.today.date);
   const coverage = buildImportCoverage_(yesterdayRows, todayRows);
+  const preservedRemarks = options.flush === true ? collectExistingRemarkMap_() : {};
+  const archivedRemarks = options.flush === true ? archiveRemarkMap_(preservedRemarks) : 0;
 
   if (options.flush === true) {
     clearReportData_();
   }
-  saveEvents_(result.events, result.todayDateText);
+  saveEvents_(result.events, result.todayDateText, preservedRemarks);
   saveTodaySnapshot_(result.todaySnapshot, result.todayDateText);
   return {
     ok: true,
     flushed: options.flush === true,
+    archivedRemarks: archivedRemarks,
     today: result.todayDateText,
     yesterday: result.yesterdayDateText,
     events: result.events.length,
@@ -108,11 +125,14 @@ function flushAndReimportInventoryMovementReport() {
 }
 
 function flushInventoryMovementReportOnly() {
+  const preservedRemarks = collectExistingRemarkMap_();
+  const archivedRemarks = archiveRemarkMap_(preservedRemarks);
   clearReportData_();
   return {
     ok: true,
     flushed: true,
-    message: 'Old movement events and snapshot have been cleared.'
+    archivedRemarks: archivedRemarks,
+    message: 'Old movement events and snapshot have been cleared. Existing remarks were archived first.'
   };
 }
 
@@ -176,7 +196,7 @@ function getEventsForDashboard() {
     if (row.Impact === 'Negative') acc.byFacility[row.Facility].negativeQty += qty;
     if (row.Impact === 'Positive') acc.byFacility[row.Facility].positiveQty += qty;
     acc.byFacility[row.Facility].events += 1;
-    if (!String(row.Remark || '').trim()) acc.pendingRemarks += 1;
+    if (row.Impact === 'Negative' && !String(row.Remark || '').trim()) acc.pendingRemarks += 1;
     return acc;
   }, {
     negativeQty: 0,
@@ -402,7 +422,8 @@ function makeMovementEvent_(x) {
   };
 }
 
-function saveEvents_(events, dateText) {
+function saveEvents_(events, dateText, preservedRemarks) {
+  preservedRemarks = preservedRemarks || {};
   const sh = ensureSheet_(IM_CONFIG.EVENTS_SHEET, IM_EVENT_HEADERS);
   const data = sh.getDataRange().getValues();
   const oldById = {};
@@ -432,6 +453,11 @@ function saveEvents_(events, dateText) {
       event.RemarkBy = oldBy;
       event.RemarkDate = oldDate;
       event.Status = oldRemark ? 'Remarked' : event.Status;
+    } else if (preservedRemarks[event.EH_ID]) {
+      event.Remark = preservedRemarks[event.EH_ID].Remark;
+      event.RemarkBy = preservedRemarks[event.EH_ID].RemarkBy;
+      event.RemarkDate = preservedRemarks[event.EH_ID].RemarkDate;
+      event.Status = event.Remark ? 'Remarked' : event.Status;
     }
     return IM_EVENT_HEADERS.map(function(h) { return event[h]; });
   });
@@ -468,6 +494,51 @@ function saveTodaySnapshot_(records, dateText) {
 function clearReportData_() {
   resetSheet_(IM_CONFIG.EVENTS_SHEET, IM_EVENT_HEADERS);
   resetSheet_(IM_CONFIG.SNAPSHOT_SHEET, IM_SNAPSHOT_HEADERS);
+}
+
+function collectExistingRemarkMap_() {
+  const rows = readSheetObjects_(IM_CONFIG.EVENTS_SHEET);
+  return rows.reduce(function(acc, row) {
+    const id = String(row.EH_ID || '').trim();
+    const remark = String(row.Remark || '').trim();
+    if (!id || !remark) return acc;
+    acc[id] = {
+      EH_ID: id,
+      Date: row.Date || '',
+      SKU: row.SKU || '',
+      Batch: row.Batch || '',
+      Facility: row.Facility || '',
+      Remark: remark,
+      RemarkBy: row.RemarkBy || '',
+      RemarkDate: row.RemarkDate || '',
+      Status: row.Status || ''
+    };
+    return acc;
+  }, {});
+}
+
+function archiveRemarkMap_(remarkMap) {
+  const ids = Object.keys(remarkMap || {});
+  if (!ids.length) return 0;
+  const sh = ensureSheet_(IM_CONFIG.REMARK_ARCHIVE_SHEET, IM_REMARK_ARCHIVE_HEADERS);
+  const archiveDate = formatDateTime_(new Date());
+  const rows = ids.map(function(id) {
+    const r = remarkMap[id];
+    return [
+      archiveDate,
+      r.EH_ID,
+      r.Date,
+      r.SKU,
+      r.Batch,
+      r.Facility,
+      r.Remark,
+      r.RemarkBy,
+      r.RemarkDate,
+      r.Status
+    ];
+  });
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, IM_REMARK_ARCHIVE_HEADERS.length).setValues(rows);
+  return rows.length;
 }
 
 function resetSheet_(sheetName, headers) {
@@ -734,6 +805,10 @@ function parseDateText_(text) {
 
 function formatDate_(date) {
   return Utilities.formatDate(date, IM_CONFIG.TIMEZONE, 'dd MMM yyyy');
+}
+
+function formatDateTime_(date) {
+  return Utilities.formatDate(date, IM_CONFIG.TIMEZONE, 'dd MMM yyyy HH:mm:ss');
 }
 
 function toNumber_(value) {
