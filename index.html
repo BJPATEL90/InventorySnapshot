@@ -80,7 +80,7 @@
     }
     .toolbar {
       display: grid;
-      grid-template-columns: minmax(260px, 1.3fr) minmax(170px, .65fr) minmax(160px, .55fr) minmax(150px, .45fr);
+      grid-template-columns: minmax(240px, 1.25fr) minmax(150px, .7fr) minmax(150px, .7fr) minmax(170px, .8fr) minmax(145px, .65fr) minmax(140px, .55fr);
       gap: 8px;
       align-items: end;
       margin-bottom: 12px;
@@ -184,6 +184,30 @@
       gap: 10px;
       margin-bottom: 12px;
     }
+    .dateRibbon {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .dateTile {
+      background: linear-gradient(135deg, #ffffff, #f8fbff);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 14px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 58px;
+    }
+    .dateValue {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text);
+      text-align: right;
+    }
     .card {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -222,6 +246,72 @@
       border-radius: 8px;
       overflow-x: auto;
       box-shadow: var(--shadow);
+    }
+    .facilityPanel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .sectionHead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line2);
+    }
+    .sectionTitle {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .facilityGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 10px;
+      padding: 12px;
+    }
+    .facilityCard {
+      border: 1px solid var(--line2);
+      border-radius: 8px;
+      padding: 11px;
+      background: #fff;
+      min-height: 118px;
+    }
+    .facilityName {
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .facilityMetrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+    .metric {
+      background: #f8fafc;
+      border: 1px solid var(--line2);
+      border-radius: 7px;
+      padding: 7px 8px;
+      min-height: 48px;
+    }
+    .metricLabel {
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .35px;
+      white-space: nowrap;
+    }
+    .metricValue {
+      margin-top: 3px;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
     }
     .tableShell {
       overflow-x: auto;
@@ -443,6 +533,7 @@
       .brandBlock { min-width: 0; }
       .toolbar { grid-template-columns: 1fr; }
       .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dateRibbon { grid-template-columns: 1fr; }
       table { min-width: 1575px; }
       .headActions { justify-content: flex-start; }
       .status { width: 100%; max-width: none; justify-content: flex-start; border-radius: 7px; white-space: normal; }
@@ -452,6 +543,7 @@
     @media (max-width: 560px) {
       .wrap { padding: 12px; }
       .cards { grid-template-columns: 1fr; }
+      .facilityGrid { grid-template-columns: 1fr; }
       .headActions button { flex: 1 1 auto; }
     }
   </style>
@@ -494,6 +586,23 @@
       </div>
     </section>
 
+    <section class="dateRibbon">
+      <div class="dateTile">
+        <div>
+          <div class="label">Today Date</div>
+          <div class="cardSub">Dashboard refresh context</div>
+        </div>
+        <div class="dateValue" id="todayDate">-</div>
+      </div>
+      <div class="dateTile">
+        <div>
+          <div class="label">Movement Done Date</div>
+          <div class="cardSub">Latest movement captured</div>
+        </div>
+        <div class="dateValue" id="movementDate">-</div>
+      </div>
+    </section>
+
     <section class="toolbar">
       <div>
         <label class="fieldLabel" for="search">Search</label>
@@ -503,6 +612,18 @@
         <label class="fieldLabel" for="facility">Facility</label>
         <select id="facility" onchange="render()">
           <option value="">All facilities</option>
+        </select>
+      </div>
+      <div>
+        <label class="fieldLabel" for="statusFilter">Status</label>
+        <select id="statusFilter" onchange="render()">
+          <option value="">All statuses</option>
+        </select>
+      </div>
+      <div>
+        <label class="fieldLabel" for="movementFilter">Movement</label>
+        <select id="movementFilter" onchange="render()">
+          <option value="">All movements</option>
         </select>
       </div>
       <div>
@@ -524,6 +645,16 @@
       <span class="statusNote" id="viewNote">Showing current month movements</span>
       <span id="rowCount">0 rows</span>
     </div>
+
+    <section class="facilityPanel">
+      <div class="sectionHead">
+        <h2 class="sectionTitle">Facility Dashboard</h2>
+        <span class="statusNote" id="facilityDashNote">Facility-wise movement KPIs</span>
+      </div>
+      <div class="facilityGrid" id="facilityDashboard">
+        <div class="empty">Loading facility dashboard...</div>
+      </div>
+    </section>
 
     <section class="panel">
       <div class="tableShell">
@@ -585,7 +716,7 @@
 
   <script>
     var GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzIWiaivJ8ibZROAU_uZ0N7-sP0xsrLsroWZwQfmodlwlz3coLOrkXa4O_ZD4xCOm2B/exec';
-    var state = { rows: [], facilities: [], summary: null };
+    var state = { rows: [], facilities: [], statuses: [], movements: [], summary: null, todayDate: '', movementDate: '' };
 
     window.onerror = function(message, source, line, column) {
       setStatus('Dashboard error: ' + message + ' at line ' + line);
@@ -600,8 +731,14 @@
           }
           state.rows = res.rows || [];
           state.facilities = res.facilities || [];
+          state.statuses = res.statuses || uniqueSorted(state.rows.map(function(r) { return r.TodayBadStatus || ''; }));
+          state.movements = res.movements || uniqueSorted(state.rows.map(function(r) { return r.MovementType || ''; }));
           state.summary = res.summary || {};
+          state.todayDate = res.todayDate || '';
+          state.movementDate = res.movementDate || '';
           buildFacilityFilter();
+          buildStatusFilter();
+          buildMovementFilter();
           renderSummary();
           render();
           setStatus('Ready');
@@ -698,20 +835,46 @@
       sel.value = selected;
     }
 
+    function buildStatusFilter() {
+      var sel = document.getElementById('statusFilter');
+      var selected = sel.value;
+      sel.innerHTML = '<option value="">All statuses</option>' +
+        state.statuses.map(function(s) {
+          return '<option value="' + esc(s) + '">' + esc(displayStatus(s)) + '</option>';
+        }).join('');
+      sel.value = selected;
+    }
+
+    function buildMovementFilter() {
+      var sel = document.getElementById('movementFilter');
+      var selected = sel.value;
+      sel.innerHTML = '<option value="">All movements</option>' +
+        state.movements.map(function(m) {
+          return '<option value="' + esc(m) + '">' + esc(m) + '</option>';
+        }).join('');
+      sel.value = selected;
+    }
+
     function renderSummary() {
       var s = state.summary || {};
       text('negativeQty', fmt(s.negativeQty || 0));
       text('positiveQty', fmt(s.positiveQty || 0));
       text('pendingRemarks', fmt(s.pendingRemarks || 0));
       text('eventCount', fmt((s.negativeEvents || 0) + (s.positiveEvents || 0)));
+      text('todayDate', state.todayDate || '-');
+      text('movementDate', state.movementDate || '-');
     }
 
     function render() {
       var q = document.getElementById('search').value.toLowerCase().trim();
       var fac = document.getElementById('facility').value;
+      var status = document.getElementById('statusFilter').value;
+      var movement = document.getElementById('movementFilter').value;
       var impact = document.getElementById('impact').value;
       var rows = state.rows.filter(function(r) {
         if (fac && r.Facility !== fac) return false;
+        if (status && r.TodayBadStatus !== status) return false;
+        if (movement && r.MovementType !== movement) return false;
         if (impact === 'Pending Remark' && (r.Impact !== 'Negative' || String(r.Remark || '').trim())) return false;
         if (impact && impact !== 'Pending Remark' && r.Impact !== impact) return false;
         if (!q) return true;
@@ -723,6 +886,7 @@
 
       var body = document.getElementById('rows');
       text('rowCount', rows.length + (rows.length === 1 ? ' row' : ' rows'));
+      renderFacilityDashboard(rows);
       if (!rows.length) {
         body.innerHTML = '<tr><td colspan="9" class="empty">No movement found</td></tr>';
         return;
@@ -736,7 +900,7 @@
         return '<tr>' +
           '<td class="dateCell">' + esc(r.Date) + '</td>' +
           '<td><div class="stack"><div class="sku">' + esc(r.SKU) + '</div><div class="muted">' + esc(r.Name || '') + '</div><div><span class="pill neutral">Batch ' + esc(r.Batch || '-') + '</span></div></div></td>' +
-          '<td><div class="sku">' + esc(r.Facility) + '</div><div class="muted">' + esc(r.TodayBadStatus || '') + '</div></td>' +
+          '<td><div class="sku">' + esc(r.Facility) + '</div><div class="muted">' + esc(displayStatus(r.TodayBadStatus || '')) + '</div></td>' +
           '<td><span class="pill ' + impactClass + '">' + esc(dirLabel) + '</span>' +
             (isSystem ? ' <span class="pill sys">System</span>' : '') +
             '<div class="movementTitle">' + esc(r.MovementType) + '</div>' +
@@ -748,6 +912,60 @@
           '<td>' + remarkCell(r) + '</td>' +
         '</tr>';
       }).join('');
+    }
+
+    function renderFacilityDashboard(rows) {
+      var host = document.getElementById('facilityDashboard');
+      var note = document.getElementById('facilityDashNote');
+      var map = {};
+      rows.forEach(function(r) {
+        var fac = r.Facility || 'Unmapped';
+        var qty = Number(String(r.MovementQty || 0).replace(/,/g, '')) || 0;
+        if (!map[fac]) {
+          map[fac] = {
+            facility: fac,
+            goodToBadQty: 0,
+            directBadGrnQty: 0,
+            badIncreaseQty: 0,
+            badToGoodRecoveryQty: 0,
+            pendingComments: 0,
+            events: 0
+          };
+        }
+        if (r.MovementType === 'Good to Bad' || r.MovementType === 'System Expiry to Bad') map[fac].goodToBadQty += qty;
+        if (r.MovementType === 'Direct Bad GRN') map[fac].directBadGrnQty += qty;
+        if (r.MovementType === 'Bad Inventory Increase') map[fac].badIncreaseQty += qty;
+        if (r.MovementType === 'Bad to Good Recovery') map[fac].badToGoodRecoveryQty += qty;
+        if (r.Impact === 'Negative' && !String(r.Remark || '').trim()) map[fac].pendingComments += 1;
+        map[fac].events += 1;
+      });
+      var cards = Object.keys(map).map(function(f) { return map[f]; })
+        .sort(function(a, b) {
+          return (b.goodToBadQty + b.directBadGrnQty + b.badIncreaseQty + b.badToGoodRecoveryQty) -
+                 (a.goodToBadQty + a.directBadGrnQty + a.badIncreaseQty + a.badToGoodRecoveryQty);
+        });
+      note.textContent = cards.length + (cards.length === 1 ? ' facility' : ' facilities') + ' in current view';
+      if (!cards.length) {
+        host.innerHTML = '<div class="empty">No facility KPI data for current filters</div>';
+        return;
+      }
+      host.innerHTML = cards.map(function(x) {
+        return '<div class="facilityCard">' +
+          '<div class="facilityName">' + esc(x.facility) + '</div>' +
+          '<div class="facilityMetrics">' +
+            metricHtml('Good to Bad', x.goodToBadQty, 'bad') +
+            metricHtml('Direct Bad GRN', x.directBadGrnQty, 'bad') +
+            metricHtml('Bad Increase', x.badIncreaseQty, 'amber') +
+            metricHtml('Recovery', x.badToGoodRecoveryQty, 'good') +
+            metricHtml('Pending Comments', x.pendingComments, 'amber') +
+            metricHtml('Events', x.events, '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function metricHtml(label, value, tone) {
+      return '<div class="metric"><div class="metricLabel">' + esc(label) + '</div><div class="metricValue ' + esc(tone || '') + '">' + fmt(value) + '</div></div>';
     }
 
     function remarkCell(r) {
@@ -869,6 +1087,19 @@
         return r.Impact === 'Negative' && !String(r.Remark || '').trim();
       }).length;
       text('pendingRemarks', fmt(pending));
+    }
+
+    function uniqueSorted(values) {
+      var seen = {};
+      values.forEach(function(v) {
+        v = String(v || '').trim();
+        if (v) seen[v] = true;
+      });
+      return Object.keys(seen).sort();
+    }
+
+    function displayStatus(status) {
+      return String(status || '').replace(/_/g, ' ');
     }
 
     function setStatus(msg) {
